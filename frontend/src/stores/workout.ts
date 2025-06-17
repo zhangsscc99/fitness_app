@@ -98,6 +98,36 @@ export const useWorkoutStore = defineStore('workout', () => {
     }
   }
 
+  // 更新动作
+  async function updateExercise(exerciseId: string, updates: Omit<Exercise, 'id' | 'created_at'>) {
+    try {
+      // 获取原有动作数据以保持创建时间
+      const originalExercise = exercises.value.find(e => e.id === exerciseId)
+      if (!originalExercise) {
+        throw new Error('动作不存在')
+      }
+      
+      const updatedExercise = {
+        ...updates,
+        id: exerciseId,
+        created_at: originalExercise.created_at // 保持原创建时间
+      }
+      
+      await db.exercises.update(exerciseId, updatedExercise)
+      
+      // 更新本地数组
+      const index = exercises.value.findIndex(e => e.id === exerciseId)
+      if (index > -1) {
+        exercises.value[index] = updatedExercise
+      }
+      
+      console.log('动作更新成功:', updatedExercise)
+    } catch (error) {
+      console.error('更新动作失败:', error)
+      throw error
+    }
+  }
+
   // 开始训练
   function startWorkout() {
     currentSession.value = {
@@ -341,6 +371,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     loadExercises,
     loadWorkoutSessions,
     addExercise,
+    updateExercise,
     startWorkout,
     addWorkoutSet,
     finishWorkout,

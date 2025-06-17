@@ -3,7 +3,7 @@
     <!-- 添加动作按钮 -->
     <div class="mb-6">
       <button
-        @click="showAddForm = true"
+        @click="showAddExerciseForm"
         class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
       >
         <Plus class="w-5 h-5 mr-2" />
@@ -63,6 +63,62 @@
           class="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           添加
+        </button>
+      </div>
+    </div>
+
+    <!-- 编辑动作表单 -->
+    <div v-if="showEditForm && editingExercise" class="bg-white rounded-lg shadow-sm p-4 mb-6 border border-orange-200">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">编辑动作</h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">动作名称</label>
+          <input
+            v-model="editExerciseForm.name"
+            type="text"
+            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            placeholder="请输入动作名称"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">肌肉群</label>
+          <select
+            v-model="editExerciseForm.muscle_group"
+            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+          >
+            <option value="">请选择肌肉群</option>
+            <option v-for="group in MUSCLE_GROUPS" :key="group" :value="group">
+              {{ group }}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">器械 (可选)</label>
+          <input
+            v-model="editExerciseForm.equipment"
+            type="text"
+            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            placeholder="如：杠铃、哑铃、器械等"
+          />
+        </div>
+      </div>
+
+      <div class="flex space-x-3 mt-4">
+        <button
+          @click="cancelEdit"
+          class="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+        >
+          取消
+        </button>
+        <button
+          @click="saveEdit"
+          :disabled="!editExerciseForm.name || !editExerciseForm.muscle_group"
+          class="flex-1 py-2 px-4 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+        >
+          保存
         </button>
       </div>
     </div>
@@ -221,7 +277,14 @@ const workoutStore = useWorkoutStore()
 
 // 响应式数据
 const showAddForm = ref(false)
+const showEditForm = ref(false)
+const editingExercise = ref<Exercise | null>(null)
 const newExercise = ref({
+  name: '',
+  muscle_group: '',
+  equipment: ''
+})
+const editExerciseForm = ref({
   name: '',
   muscle_group: '',
   equipment: ''
@@ -236,6 +299,14 @@ const historyRecords = ref<OneRepMax[]>([])
 const exercisesByMuscleGroup = computed(() => workoutStore.exercisesByMuscleGroup)
 
 // 方法
+function showAddExerciseForm() {
+  // 关闭编辑表单（如果打开的话）
+  showEditForm.value = false
+  editingExercise.value = null
+  
+  showAddForm.value = true
+}
+
 async function addExercise() {
   if (!newExercise.value.name || !newExercise.value.muscle_group) return
 
@@ -253,6 +324,20 @@ async function addExercise() {
   }
 }
 
+function editExercise(exercise: Exercise) {
+  // 关闭添加表单（如果打开的话）
+  showAddForm.value = false
+  
+  editingExercise.value = exercise
+  // 预填充表单数据
+  editExerciseForm.value = {
+    name: exercise.name,
+    muscle_group: exercise.muscle_group,
+    equipment: exercise.equipment || ''
+  }
+  showEditForm.value = true
+}
+
 function cancelAdd() {
   showAddForm.value = false
   newExercise.value = {
@@ -260,11 +345,6 @@ function cancelAdd() {
     muscle_group: '',
     equipment: ''
   }
-}
-
-function editExercise(exercise: Exercise) {
-  // TODO: 实现编辑功能
-  console.log('编辑动作:', exercise)
 }
 
 async function deleteExercise(exerciseId: string) {
@@ -376,6 +456,33 @@ async function loadOneRepMaxes() {
     oneRepMaxes.value = allOneRMs.filter(orm => orm !== undefined) as OneRepMax[]
   } catch (error) {
     console.error('加载1RM记录失败:', error)
+  }
+}
+
+function cancelEdit() {
+  showEditForm.value = false
+  editingExercise.value = null
+  editExerciseForm.value = {
+    name: '',
+    muscle_group: '',
+    equipment: ''
+  }
+}
+
+async function saveEdit() {
+  if (!editingExercise.value) return
+
+  try {
+    await workoutStore.updateExercise(editingExercise.value.id, {
+      name: editExerciseForm.value.name,
+      muscle_group: editExerciseForm.value.muscle_group,
+      equipment: editExerciseForm.value.equipment || undefined
+    })
+    
+    cancelEdit()
+  } catch (error) {
+    console.error('编辑动作失败:', error)
+    alert('编辑失败，请重试')
   }
 }
 
