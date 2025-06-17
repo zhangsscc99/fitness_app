@@ -126,7 +126,7 @@
                 class="text-blue-600 hover:text-blue-700 p-1"
                 title="再来一组"
               >
-                <Repeat class="w-4 h-4" />
+                <PlusCircle class="w-4 h-4" />
               </button>
               <button
                 @click="removeSet(index)"
@@ -179,7 +179,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutStore } from '../stores/workout'
 import Layout from '../components/Layout.vue'
-import { Dumbbell, X, Repeat } from 'lucide-vue-next'
+import { Dumbbell, X, PlusCircle } from 'lucide-vue-next'
 import type { Exercise, OneRepMax, WorkoutSet } from '../types/workout'
 
 const router = useRouter()
