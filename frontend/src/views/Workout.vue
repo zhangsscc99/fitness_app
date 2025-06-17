@@ -124,9 +124,9 @@
               <button
                 @click="copySet(set)"
                 class="text-blue-600 hover:text-blue-700 p-1"
-                title="复制这组"
+                title="再来一组"
               >
-                <Copy class="w-4 h-4" />
+                <Repeat class="w-4 h-4" />
               </button>
               <button
                 @click="removeSet(index)"
@@ -179,7 +179,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutStore } from '../stores/workout'
 import Layout from '../components/Layout.vue'
-import { Dumbbell, X, Copy } from 'lucide-vue-next'
+import { Dumbbell, X, Repeat } from 'lucide-vue-next'
 import type { Exercise, OneRepMax, WorkoutSet } from '../types/workout'
 
 const router = useRouter()
@@ -246,7 +246,7 @@ function removeSet(index: number) {
   }
 }
 
-// 复制训练组
+// 复制训练组 - 直接添加一组相同的
 async function copySet(set: WorkoutSet) {
   try {
     // 根据 exercise_id 找到对应的动作
@@ -256,27 +256,10 @@ async function copySet(set: WorkoutSet) {
       return
     }
 
-    // 自动选择该动作
-    selectedExercise.value = exercise
+    // 直接添加一组相同重量和次数的训练组
+    await workoutStore.addWorkoutSet(set.exercise_id, set.reps, set.weight)
     
-    // 填充重量和次数
-    setWeight.value = set.weight
-    setReps.value = set.reps
-    
-    // 获取该动作的1RM
-    currentOneRM.value = await workoutStore.getOneRepMax(exercise.id) || null
-    
-    // 等待 DOM 更新后滚动到编辑区域
-    await nextTick()
-    if (editArea.value) {
-      editArea.value.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      })
-    }
-    
-    // 给用户一个简单的视觉反馈
-    console.log(`✅ 已复制: ${exercise.name} ${set.weight}kg × ${set.reps}次`)
+    console.log(`✅ 已添加一组: ${exercise.name} ${set.weight}kg × ${set.reps}次`)
   } catch (error) {
     console.error('复制训练组失败:', error)
   }
