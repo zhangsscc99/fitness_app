@@ -38,6 +38,10 @@
               <div class="text-xs text-gray-500">
                 {{ session.sets.length }}组
               </div>
+              <!-- 显示总卡路里 -->
+              <div class="text-xs text-orange-600 font-medium mt-1">
+                🔥 {{ getSessionCalories(session) }}千卡
+              </div>
             </div>
           </div>
           
@@ -62,19 +66,23 @@
                 <div
                   v-for="(set, index) in exerciseGroup.sets"
                   :key="set.id"
-                  class="text-sm text-gray-600"
+                  class="text-sm text-gray-600 flex justify-between items-center"
                 >
-                  第{{ index + 1 }}组: {{ set.weight }}kg × {{ set.reps }}次
+                  <span>第{{ index + 1 }}组: {{ set.weight }}kg × {{ set.reps }}次</span>
+                  <span class="text-orange-600 text-xs">🔥{{ set.calories || 0 }}千卡</span>
                 </div>
               </div>
               
-              <!-- 显示该动作的最大重量和1RM -->
-              <div class="text-xs mt-1 space-x-2">
+              <!-- 显示该动作的最大重量、1RM和总卡路里 -->
+              <div class="text-xs mt-2 space-x-3">
                 <span class="text-blue-600">
                   最大重量: {{ getMaxWeightForExercise(exerciseGroup.sets) }}kg
                 </span>
                 <span class="text-green-600">
                   计算1RM: {{ getCalculated1RMForExercise(exerciseGroup.sets) }}kg
+                </span>
+                <span class="text-orange-600 font-medium">
+                  总卡路里: {{ getExerciseCalories(exerciseGroup.sets) }}千卡
                 </span>
               </div>
             </div>
@@ -172,6 +180,20 @@ function getCalculated1RMForExercise(sets: WorkoutSet[]): number {
   
   // 使用最重组的重量和次数计算1RM
   return calculateOneRepMax(maxWeightSet.weight, maxWeightSet.reps)
+}
+
+// 计算单个动作的总卡路里
+function getExerciseCalories(sets: WorkoutSet[]): number {
+  return sets.reduce((total, set) => total + (set.calories || 0), 0)
+}
+
+// 计算整个训练会话的总卡路里
+function getSessionCalories(session: WorkoutSession): number {
+  if (session.total_calories) {
+    return session.total_calories
+  }
+  // 如果没有存储总卡路里，则计算
+  return session.sets.reduce((total, set) => total + (set.calories || 0), 0)
 }
 
 async function duplicateWorkout(session: WorkoutSession) {

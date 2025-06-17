@@ -1,5 +1,42 @@
 <template>
   <Layout>
+    <!-- 用户设置 -->
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <component :is="getMuscleGroupIcon('设置')" class="w-5 h-5 mr-2 text-blue-600" />
+        用户设置
+      </h3>
+      
+      <div class="flex items-center space-x-4">
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">体重 (kg)</label>
+          <input
+            v-model.number="bodyWeightInput"
+            type="number"
+            step="0.5"
+            min="30"
+            max="200"
+            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="请输入体重"
+          />
+        </div>
+        <div class="flex flex-col">
+          <div class="text-xs text-gray-500 mb-1">当前: {{ currentBodyWeight }}kg</div>
+          <button
+            @click="updateBodyWeight"
+            :disabled="!bodyWeightInput || bodyWeightInput === currentBodyWeight"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            更新
+          </button>
+        </div>
+      </div>
+      
+      <div class="text-xs text-gray-500 mt-2">
+        💡 体重用于计算训练消耗的卡路里，建议定期更新以获得准确的卡路里统计
+      </div>
+    </div>
+
     <!-- 添加动作按钮 -->
     <div class="mb-6">
       <button
@@ -294,9 +331,14 @@ const showHistoryModal = ref(false)
 const selectedExerciseId = ref('')
 const selectedExerciseName = ref('')
 const historyRecords = ref<OneRepMax[]>([])
+const bodyWeightInput = ref(70)
 
 // 计算属性
 const exercisesByMuscleGroup = computed(() => workoutStore.exercisesByMuscleGroup)
+
+const currentBodyWeight = computed(() => {
+  return workoutStore.userSettings?.body_weight || 70
+})
 
 // 方法
 function showAddExerciseForm() {
@@ -486,7 +528,21 @@ async function saveEdit() {
   }
 }
 
+async function updateBodyWeight() {
+  if (!bodyWeightInput.value || bodyWeightInput.value === currentBodyWeight.value) return
+  
+  try {
+    await workoutStore.updateBodyWeight(bodyWeightInput.value)
+    console.log(`体重已更新为: ${bodyWeightInput.value}kg`)
+  } catch (error) {
+    console.error('更新体重失败:', error)
+    alert('更新体重失败，请重试')
+  }
+}
+
 onMounted(() => {
   loadOneRepMaxes()
+  // 初始化体重输入值
+  bodyWeightInput.value = currentBodyWeight.value
 })
 </script> 

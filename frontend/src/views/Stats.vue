@@ -18,8 +18,19 @@
         <div class="text-sm text-gray-600">总训练量(kg)</div>
       </div>
       <div class="bg-white rounded-lg shadow-sm p-4 text-center">
-        <div class="text-2xl font-bold text-orange-600 mb-1">{{ averageDuration }}</div>
+        <div class="text-2xl font-bold text-orange-600 mb-1">{{ totalCalories }}</div>
+        <div class="text-sm text-gray-600">总消耗(千卡)</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow-sm p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-600 mb-1">{{ averageDuration }}</div>
         <div class="text-sm text-gray-600">平均时长(分钟)</div>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm p-4 text-center">
+        <div class="text-2xl font-bold text-red-600 mb-1">{{ averageCaloriesPerWorkout }}</div>
+        <div class="text-sm text-gray-600">平均千卡/次</div>
       </div>
     </div>
 
@@ -30,7 +41,7 @@
         本周统计
       </h3>
       
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-2 gap-4 mb-3">
         <div class="text-center">
           <div class="text-xl font-bold text-blue-600">{{ weekStats.workouts }}</div>
           <div class="text-xs text-gray-600">训练次数</div>
@@ -39,9 +50,16 @@
           <div class="text-xl font-bold text-green-600">{{ weekStats.sets }}</div>
           <div class="text-xs text-gray-600">组数</div>
         </div>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-4">
         <div class="text-center">
           <div class="text-xl font-bold text-purple-600">{{ weekStats.volume }}</div>
           <div class="text-xs text-gray-600">训练量(kg)</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl font-bold text-orange-600">{{ weekStats.calories }}</div>
+          <div class="text-xs text-gray-600">消耗(千卡)</div>
         </div>
       </div>
     </div>
@@ -317,12 +335,31 @@ const totalVolume = computed(() => {
   }, 0)
 })
 
+const totalCalories = computed(() => {
+  return workoutStore.workoutSessions.reduce((total, session) => {
+    // 如果有存储的总卡路里，使用它，否则计算
+    if (session.total_calories) {
+      return total + session.total_calories
+    }
+    // 如果没有，从sets中计算
+    const sessionCalories = session.sets.reduce((sessionTotal, set) => {
+      return sessionTotal + (set.calories || 0)
+    }, 0)
+    return total + sessionCalories
+  }, 0)
+})
+
 const averageDuration = computed(() => {
   if (workoutStore.workoutSessions.length === 0) return 0
   const totalDuration = workoutStore.workoutSessions.reduce((total, session) => {
     return total + (session.duration || 0)
   }, 0)
   return Math.round(totalDuration / workoutStore.workoutSessions.length)
+})
+
+const averageCaloriesPerWorkout = computed(() => {
+  if (workoutStore.workoutSessions.length === 0) return 0
+  return Math.round(totalCalories.value / workoutStore.workoutSessions.length)
 })
 
 const weekStats = computed(() => {
@@ -341,10 +378,22 @@ const weekStats = computed(() => {
     }, 0)
   }, 0)
   
+  const calories = weekSessions.reduce((total, session) => {
+    if (session.total_calories) {
+      return total + session.total_calories
+    }
+    // 如果没有存储的总卡路里，从sets中计算
+    const sessionCalories = session.sets.reduce((sessionTotal, set) => {
+      return sessionTotal + (set.calories || 0)
+    }, 0)
+    return total + sessionCalories
+  }, 0)
+  
   return {
     workouts: weekSessions.length,
     sets,
-    volume
+    volume,
+    calories
   }
 })
 

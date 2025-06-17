@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { db, initializeDefaultExercises, resetDatabase } from '../utils/database'
-import type { Exercise, WorkoutSession, WorkoutSet, OneRepMax } from '../types/workout'
-import { calculateOneRepMax } from '../types/workout'
+import { db, initializeDefaultExercises, resetDatabase, getUserSettings, updateUserSettings } from '../utils/database'
+import type { Exercise, WorkoutSession, WorkoutSet, OneRepMax, UserSettings } from '../types/workout'
+import { calculateOneRepMax, calculateCalories, getCalorieFactorByMuscleGroup } from '../types/workout'
 
 export const useWorkoutStore = defineStore('workout', () => {
   // 状态
@@ -10,6 +10,7 @@ export const useWorkoutStore = defineStore('workout', () => {
   const workoutSessions = ref<WorkoutSession[]>([])
   const currentSession = ref<WorkoutSession | null>(null)
   const isLoading = ref(false)
+  const userSettings = ref<UserSettings | null>(null)
 
   // 计算属性
   const exercisesByMuscleGroup = computed(() => {
@@ -29,6 +30,7 @@ export const useWorkoutStore = defineStore('workout', () => {
       await initializeDefaultExercises()
       await loadExercises()
       await loadWorkoutSessions()
+      await loadUserSettings()
     } catch (error) {
       console.error('初始化数据库失败:', error)
       // 如果初始化失败，尝试重置数据库
@@ -36,9 +38,30 @@ export const useWorkoutStore = defineStore('workout', () => {
         await resetDatabase()
         await loadExercises()
         await loadWorkoutSessions()
+        await loadUserSettings()
       } catch (resetError) {
         console.error('重置数据库失败:', resetError)
       }
+    }
+  }
+
+  // 加载用户设置
+  async function loadUserSettings() {
+    try {
+      userSettings.value = await getUserSettings()
+    } catch (error) {
+      console.error('加载用户设置失败:', error)
+    }
+  }
+
+  // 更新用户体重
+  async function updateBodyWeight(bodyWeight: number) {
+    try {
+      await updateUserSettings(bodyWeight)
+      await loadUserSettings()
+    } catch (error) {
+      console.error('更新体重失败:', error)
+      throw error
     }
   }
 
@@ -49,8 +72,10 @@ export const useWorkoutStore = defineStore('workout', () => {
       exercises.value = []
       workoutSessions.value = []
       currentSession.value = null
+      userSettings.value = null
       await loadExercises()
       await loadWorkoutSessions()
+      await loadUserSettings()
       console.log('数据库重置完成')
     } catch (error) {
       console.error('重置数据库失败:', error)
@@ -134,6 +159,7 @@ export const useWorkoutStore = defineStore('workout', () => {
       id: `session-${Date.now()}`,
       date: new Date(),
       sets: [],
+      total_calories: 0,
       created_at: new Date()
     }
   }
@@ -143,16 +169,30 @@ export const useWorkoutStore = defineStore('workout', () => {
     if (!currentSession.value) return
 
     try {
+      // 获取动作信息
+      const exercise = exercises.value.find(e => e.id === exerciseId)
+      if (!exercise) {
+        throw new Error('动作不存在')
+      }
+
+      // 计算卡路里
+      const bodyWeight = userSettings.value?.body_weight || 70
+      const calories = calculateCalories(exercise.name, weight, reps, bodyWeight)
+
       const newSet: WorkoutSet = {
         id: `set-${Date.now()}`,
         exercise_id: exerciseId,
         reps,
         weight,
+        calories,
         completed: true,
         created_at: new Date()
       }
 
       currentSession.value.sets.push(newSet)
+      
+      // 更新当前会话的总卡路里
+      currentSession.value.total_calories = (currentSession.value.total_calories || 0) + calories
       
       // 计算并更新1RM
       await updateOneRepMax(exerciseId, weight, reps)
@@ -175,6 +215,12 @@ export const useWorkoutStore = defineStore('workout', () => {
       const duration = Math.round((Date.now() - currentSession.value.created_at.getTime()) / 60000)
       currentSession.value.duration = duration
       currentSession.value.notes = notes
+
+      // 确保总卡路里计算正确
+      const totalCalories = currentSession.value.sets.reduce((total, set) => {
+        return total + (set.calories || 0)
+      }, 0)
+      currentSession.value.total_calories = totalCalories
 
       // 为所有sets设置workout_session_id
       const setsWithSessionId = currentSession.value.sets.map(set => ({
@@ -215,7 +261,7 @@ export const useWorkoutStore = defineStore('workout', () => {
       
       currentSession.value = null
       
-      console.log('训练完成并保存成功')
+      console.log(`训练完成并保存成功，总消耗卡路里: ${totalCalories}`)
     } catch (error) {
       console.error('完成训练失败:', error)
       alert('保存训练失败，请重试')
@@ -364,6 +410,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     currentSession,
     isLoading,
     exercisesByMuscleGroup,
+    userSettings,
     
     // 方法
     initDatabase,
@@ -381,6 +428,8 @@ export const useWorkoutStore = defineStore('workout', () => {
     getAllOneRepMaxRecords,
     getExerciseName,
     deleteWorkoutSession,
-    debugGetAllOneRMs
+    debugGetAllOneRMs,
+    loadUserSettings,
+    updateBodyWeight
   }
 }) 
