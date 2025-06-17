@@ -53,7 +53,7 @@
       </div>
 
       <!-- 添加训练组 -->
-      <div v-if="selectedExercise" class="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <div v-if="selectedExercise" ref="editArea" class="bg-white rounded-lg shadow-sm p-4 mb-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
           {{ selectedExercise.name }}
         </h3>
@@ -164,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutStore } from '../stores/workout'
 import Layout from '../components/Layout.vue'
@@ -181,6 +181,7 @@ const setReps = ref<number>(0)
 const notes = ref('')
 const trainingDuration = ref(0)
 const currentOneRM = ref<OneRepMax | null>(null)
+const editArea = ref<HTMLElement | null>(null)
 
 let durationInterval: number | null = null
 
@@ -200,6 +201,15 @@ async function selectExercise(exercise: Exercise) {
   
   // 获取该动作的1RM
   currentOneRM.value = await workoutStore.getOneRepMax(exercise.id) || null
+  
+  // 等待 DOM 更新后滚动到编辑区域
+  await nextTick()
+  if (editArea.value) {
+    editArea.value.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'start' 
+    })
+  }
 }
 
 async function addSet() {
