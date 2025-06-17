@@ -68,9 +68,14 @@
                 </div>
               </div>
               
-              <!-- 显示该动作的最大重量 -->
-              <div class="text-xs text-blue-600 mt-1">
-                最大: {{ getMaxWeightForExercise(exerciseGroup.sets) }}kg
+              <!-- 显示该动作的最大重量和1RM -->
+              <div class="text-xs mt-1 space-x-2">
+                <span class="text-blue-600">
+                  最大重量: {{ getMaxWeightForExercise(exerciseGroup.sets) }}kg
+                </span>
+                <span class="text-green-600">
+                  计算1RM: {{ getCalculated1RMForExercise(exerciseGroup.sets) }}kg
+                </span>
               </div>
             </div>
           </div>
@@ -116,6 +121,7 @@ import Layout from '../components/Layout.vue'
 import { History } from 'lucide-vue-next'
 import { format } from 'date-fns'
 import type { WorkoutSet, WorkoutSession } from '../types/workout'
+import { calculateOneRepMax } from '../types/workout'
 
 const router = useRouter()
 const workoutStore = useWorkoutStore()
@@ -156,6 +162,16 @@ function groupSetsByExercise(sets: WorkoutSet[]) {
 
 function getMaxWeightForExercise(sets: WorkoutSet[]): number {
   return Math.max(...sets.map(set => set.weight))
+}
+
+function getCalculated1RMForExercise(sets: WorkoutSet[]): number {
+  // 找到重量最重的组
+  const maxWeightSet = sets.reduce((max, current) => {
+    return current.weight > max.weight ? current : max
+  }, sets[0])
+  
+  // 使用最重组的重量和次数计算1RM
+  return calculateOneRepMax(maxWeightSet.weight, maxWeightSet.reps)
 }
 
 async function duplicateWorkout(session: WorkoutSession) {

@@ -180,15 +180,18 @@ export const useWorkoutStore = defineStore('workout', () => {
     try {
       const calculatedMax = calculateOneRepMax(weight, reps)
       
-      // 检查是否已存在该动作的1RM记录
-      const existingMax = await db.oneRepMaxes
+      // 获取当前最新的1RM记录
+      const latestMax = await db.oneRepMaxes
         .where('exercise_id')
         .equals(exerciseId)
+        .orderBy('date')
+        .reverse()
         .first()
 
-      if (!existingMax || calculatedMax > existingMax.weight) {
+      // 如果没有记录或者新的1RM更高，则添加新记录
+      if (!latestMax || calculatedMax > latestMax.weight) {
         const oneRepMax: OneRepMax = {
-          id: `1rm-${Date.now()}`,
+          id: `1rm-${exerciseId}-${Date.now()}`,
           exercise_id: exerciseId,
           weight: calculatedMax,
           calculated: reps > 1,
@@ -196,25 +199,61 @@ export const useWorkoutStore = defineStore('workout', () => {
           created_at: new Date()
         }
 
-        if (existingMax) {
-          await db.oneRepMaxes.update(existingMax.id, oneRepMax)
-        } else {
-          await db.oneRepMaxes.add(oneRepMax)
-        }
+        await db.oneRepMaxes.add(oneRepMax)
+        console.log(`新1RM记录: ${getExerciseName(exerciseId)} ${calculatedMax}kg`)
       }
     } catch (error) {
       console.error('更新1RM失败:', error)
     }
   }
 
-  // 获取动作的1RM
+  // 获取动作的最新1RM
   async function getOneRepMax(exerciseId: string): Promise<OneRepMax | undefined> {
     try {
-      return await db.oneRepMaxes.where('exercise_id').equals(exerciseId).first()
+      return await db.oneRepMaxes
+        .where('exercise_id')
+        .equals(exerciseId)
+        .orderBy('date')
+        .reverse()
+        .first()
     } catch (error) {
       console.error('获取1RM失败:', error)
       return undefined
     }
+  }
+
+  // 获取动作的1RM历史记录
+  async function getOneRepMaxHistory(exerciseId: string): Promise<OneRepMax[]> {
+    try {
+      return await db.oneRepMaxes
+        .where('exercise_id')
+        .equals(exerciseId)
+        .orderBy('date')
+        .reverse()
+        .toArray()
+    } catch (error) {
+      console.error('获取1RM历史失败:', error)
+      return []
+    }
+  }
+
+  // 获取所有1RM记录（用于统计页面）
+  async function getAllOneRepMaxRecords(): Promise<OneRepMax[]> {
+    try {
+      return await db.oneRepMaxes
+        .orderBy('date')
+        .reverse()
+        .toArray()
+    } catch (error) {
+      console.error('获取所有1RM记录失败:', error)
+      return []
+    }
+  }
+
+  // 获取动作名称
+  function getExerciseName(exerciseId: string): string {
+    const exercise = exercises.value.find(e => e.id === exerciseId)
+    return exercise ? exercise.name : '未知动作'
   }
 
   // 删除训练记录
@@ -252,6 +291,9 @@ export const useWorkoutStore = defineStore('workout', () => {
     finishWorkout,
     updateOneRepMax,
     getOneRepMax,
+    getOneRepMaxHistory,
+    getAllOneRepMaxRecords,
+    getExerciseName,
     deleteWorkoutSession
   }
 }) 

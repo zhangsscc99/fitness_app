@@ -89,14 +89,21 @@
                   {{ exercise.equipment }}
                 </div>
                 
-                <!-- 显示1RM -->
+                <!-- 显示最新1RM -->
                 <div v-if="getOneRM(exercise.id)" class="mt-2">
                   <div class="inline-flex items-center px-2 py-1 bg-blue-50 border border-blue-200 rounded text-xs">
                     <Trophy class="w-3 h-3 mr-1 text-blue-600" />
                     <span class="text-blue-700 font-medium">
-                      1RM: {{ getOneRM(exercise.id)?.weight }}kg
+                      当前1RM: {{ getOneRM(exercise.id)?.weight }}kg
                     </span>
                   </div>
+                  <!-- 1RM历史按钮 -->
+                  <button
+                    @click="showHistory(exercise.id, exercise.name)"
+                    class="ml-2 text-xs text-blue-600 hover:text-blue-700 underline"
+                  >
+                    查看历史
+                  </button>
                 </div>
 
                 <!-- 显示训练统计 -->
@@ -129,6 +136,68 @@
       </div>
     </div>
 
+    <!-- 1RM历史记录弹窗 -->
+    <div v-if="showHistoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[70vh] overflow-hidden">
+        <div class="p-4 border-b border-gray-200">
+          <div class="flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-gray-900">{{ selectedExerciseName }} - 1RM历史</h3>
+            <button
+              @click="closeHistory"
+              class="text-gray-500 hover:text-gray-700"
+            >
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div class="p-4 overflow-y-auto">
+          <div v-if="historyRecords.length === 0" class="text-center text-gray-500 py-8">
+            <Trophy class="w-12 h-12 mx-auto mb-2 text-gray-400" />
+            <p>还没有1RM记录</p>
+          </div>
+
+          <div v-else class="space-y-3">
+            <div
+              v-for="(record, index) in historyRecords"
+              :key="record.id"
+              class="border border-gray-200 rounded-lg p-3"
+              :class="index === 0 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'"
+            >
+              <div class="flex justify-between items-center">
+                <div>
+                  <div class="font-bold text-lg" :class="index === 0 ? 'text-blue-700' : 'text-gray-900'">
+                    {{ record.weight }}kg
+                    <span v-if="index === 0" class="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded ml-2">
+                      当前最佳
+                    </span>
+                  </div>
+                  <div class="text-sm text-gray-600">
+                    {{ formatDate(record.date) }}
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ record.calculated ? '计算得出' : '实际测试' }}
+                  </div>
+                </div>
+                <div v-if="index > 0" class="text-sm text-gray-500">
+                  {{ getProgress(record.weight, historyRecords[0].weight) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-200">
+          <button
+            @click="closeHistory"
+            class="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+          >
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 空状态 -->
     <div v-if="Object.keys(exercisesByMuscleGroup).length === 0" class="text-center py-12">
       <List class="w-16 h-16 mx-auto mb-4 text-gray-400" />
@@ -142,8 +211,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useWorkoutStore } from '../stores/workout'
 import Layout from '../components/Layout.vue'
-import { Plus, Edit, Trash2, List, Trophy, Dumbbell, Heart, Zap } from 'lucide-vue-next'
+import { Plus, Edit, Trash2, List, Trophy, Dumbbell, Heart, Zap, X } from 'lucide-vue-next'
 import { MUSCLE_GROUPS } from '../types/workout'
+import { format } from 'date-fns'
 import type { Exercise, OneRepMax } from '../types/workout'
 
 const workoutStore = useWorkoutStore()
@@ -156,6 +226,10 @@ const newExercise = ref({
   equipment: ''
 })
 const oneRepMaxes = ref<OneRepMax[]>([])
+const showHistoryModal = ref(false)
+const selectedExerciseId = ref('')
+const selectedExerciseName = ref('')
+const historyRecords = ref<OneRepMax[]>([])
 
 // 计算属性
 const exercisesByMuscleGroup = computed(() => workoutStore.exercisesByMuscleGroup)
@@ -236,6 +310,34 @@ function getExerciseStats(exerciseId: string) {
     totalSessions: sessions.length,
     totalSets
   }
+}
+
+async function showHistory(exerciseId: string, exerciseName: string) {
+  selectedExerciseId.value = exerciseId
+  selectedExerciseName.value = exerciseName
+  historyRecords.value = await workoutStore.getOneRepMaxHistory(exerciseId)
+  showHistoryModal.value = true
+}
+
+function closeHistory() {
+  showHistoryModal.value = false
+  selectedExerciseId.value = ''
+  selectedExerciseName.value = ''
+  historyRecords.value = []
+}
+
+function formatDate(date: Date): string {
+  return format(date, 'yyyy年MM月dd日 HH:mm')
+}
+
+function getProgress(oldWeight: number, newWeight: number): string {
+  const diff = newWeight - oldWeight
+  if (diff > 0) {
+    return `+${diff}kg`
+  } else if (diff < 0) {
+    return `${diff}kg`
+  }
+  return '无变化'
 }
 
 async function loadOneRepMaxes() {
