@@ -215,6 +215,7 @@ import { Plus, Edit, Trash2, List, Trophy, Dumbbell, Heart, Zap, X } from 'lucid
 import { MUSCLE_GROUPS } from '../types/workout'
 import { format } from 'date-fns'
 import type { Exercise, OneRepMax } from '../types/workout'
+import { db } from '../utils/database'
 
 const workoutStore = useWorkoutStore()
 
@@ -315,8 +316,27 @@ function getExerciseStats(exerciseId: string) {
 async function showHistory(exerciseId: string, exerciseName: string) {
   selectedExerciseId.value = exerciseId
   selectedExerciseName.value = exerciseName
-  historyRecords.value = await workoutStore.getOneRepMaxHistory(exerciseId)
-  showHistoryModal.value = true
+  
+  console.log(`查看${exerciseName}历史 - exerciseId: ${exerciseId}`)
+  
+  try {
+    // 直接从数据库查询，确保获取最新数据
+    const history = await db.oneRepMaxes
+      .where('exercise_id')
+      .equals(exerciseId)
+      .orderBy('date')
+      .reverse()
+      .toArray()
+    
+    console.log(`找到${history.length}条1RM记录:`, history)
+    
+    historyRecords.value = history
+    showHistoryModal.value = true
+  } catch (error) {
+    console.error('查询1RM历史失败:', error)
+    historyRecords.value = []
+    showHistoryModal.value = true
+  }
 }
 
 function closeHistory() {

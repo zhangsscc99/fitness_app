@@ -155,6 +155,23 @@ export const useWorkoutStore = defineStore('workout', () => {
       // 保存所有sets
       await db.workoutSets.bulkAdd(setsWithSessionId)
       
+      // 确保训练完成时更新所有动作的1RM
+      const exerciseGroups: { [key: string]: WorkoutSet[] } = {}
+      currentSession.value.sets.forEach(set => {
+        if (!exerciseGroups[set.exercise_id]) {
+          exerciseGroups[set.exercise_id] = []
+        }
+        exerciseGroups[set.exercise_id].push(set)
+      })
+
+      // 为每个动作保存1RM记录
+      for (const [exerciseId, sets] of Object.entries(exerciseGroups)) {
+        const maxSet = sets.reduce((max, current) => 
+          current.weight > max.weight ? current : max
+        )
+        await saveOneRepMaxRecord(exerciseId, maxSet.weight, maxSet.reps)
+      }
+      
       // 保存session (不包含sets，因为sets已单独保存)
       const sessionToSave = { ...currentSession.value }
       delete (sessionToSave as any).sets
@@ -172,6 +189,41 @@ export const useWorkoutStore = defineStore('workout', () => {
       throw error
     } finally {
       isLoading.value = false
+    }
+  }
+
+  // 新增：保存1RM记录（带时间戳）
+  async function saveOneRepMaxRecord(exerciseId: string, weight: number, reps: number) {
+    try {
+      const calculatedMax = calculateOneRepMax(weight, reps)
+      const now = new Date()
+      
+      // 总是保存1RM记录（即使没有突破，也要记录时间点）
+      const oneRepMax: OneRepMax = {
+        id: `1rm-${exerciseId}-${now.getTime()}`,
+        exercise_id: exerciseId,
+        weight: calculatedMax,
+        calculated: reps > 1,
+        date: now,
+        created_at: now
+      }
+
+      await db.oneRepMaxes.add(oneRepMax)
+      console.log(`保存1RM记录: ${getExerciseName(exerciseId)} ${calculatedMax}kg (${now.toLocaleString()})`)
+    } catch (error) {
+      console.error('保存1RM记录失败:', error)
+    }
+  }
+
+  // 调试：获取所有1RM数据
+  async function debugGetAllOneRMs(): Promise<OneRepMax[]> {
+    try {
+      const allRecords = await db.oneRepMaxes.toArray()
+      console.log('所有1RM记录:', allRecords)
+      return allRecords
+    } catch (error) {
+      console.error('获取调试数据失败:', error)
+      return []
     }
   }
 
@@ -294,6 +346,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     getOneRepMaxHistory,
     getAllOneRepMaxRecords,
     getExerciseName,
-    deleteWorkoutSession
+    deleteWorkoutSession,
+    debugGetAllOneRMs
   }
 }) 

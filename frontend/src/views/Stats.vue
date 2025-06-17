@@ -71,11 +71,23 @@
       </div>
     </div>
 
-    <!-- 1RM记录 -->
+    <!-- 1RM记录与历史 -->
     <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
         <Trophy class="w-5 h-5 mr-2 text-blue-600" />
         1RM记录与历史
+        <button
+          @click="debugPrint1RMs"
+          class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded hover:bg-gray-300 mr-2"
+        >
+          调试数据
+        </button>
+        <button
+          @click="testAdd1RM"
+          class="text-xs bg-green-200 text-green-600 px-2 py-1 rounded hover:bg-green-300"
+        >
+          测试1RM
+        </button>
       </h3>
       
       <div v-if="oneRepMaxRecords.length === 0" class="text-center text-gray-500 py-8">
@@ -137,7 +149,7 @@
 
         <!-- 全部1RM历史 -->
         <div>
-          <h4 class="font-medium text-gray-900 mb-2">全部1RM历史</h4>
+          <h4 class="font-medium text-gray-900 mb-2">全部1RM历史 ({{ oneRepMaxRecords.length }}条记录)</h4>
           <div class="max-h-60 overflow-y-auto space-y-2">
             <div
               v-for="record in oneRepMaxRecords"
@@ -147,9 +159,10 @@
               <div>
                 <div class="font-medium text-gray-900">{{ getExerciseName(record.exercise_id) }}</div>
                 <div class="text-xs text-gray-500">
-                  {{ formatDate(record.date) }}
+                  {{ formatDateDetail(record.date) }}
                   {{ record.calculated ? '(计算得出)' : '(实际测试)' }}
                 </div>
+                <div class="text-xs text-blue-600">ID: {{ record.exercise_id }}</div>
               </div>
               <div class="text-right">
                 <div class="text-lg font-bold text-blue-600">{{ record.weight }}kg</div>
@@ -290,6 +303,7 @@ import Layout from '../components/Layout.vue'
 import { Calendar, PieChart, Trophy, Activity, BarChart3, X } from 'lucide-vue-next'
 import { format, startOfWeek, endOfWeek, isWithinInterval, subDays, isSameDay } from 'date-fns'
 import type { OneRepMax } from '../types/workout'
+import { db } from '../utils/database'
 
 const workoutStore = useWorkoutStore()
 const oneRepMaxRecords = ref<OneRepMax[]>([])
@@ -475,8 +489,27 @@ function formatDate(date: Date): string {
 async function showExerciseHistory(exerciseId: string) {
   selectedExerciseId.value = exerciseId
   selectedExerciseName.value = getExerciseName(exerciseId)
-  exerciseHistory.value = await workoutStore.getOneRepMaxHistory(exerciseId)
-  showHistoryModal.value = true
+  
+  console.log(`查看历史 - exerciseId: ${exerciseId}, exerciseName: ${selectedExerciseName.value}`)
+  
+  try {
+    // 直接从数据库查询，不依赖store的缓存
+    const history = await db.oneRepMaxes
+      .where('exercise_id')
+      .equals(exerciseId)
+      .orderBy('date')
+      .reverse()
+      .toArray()
+    
+    console.log(`找到${history.length}条1RM记录:`, history)
+    
+    exerciseHistory.value = history
+    showHistoryModal.value = true
+  } catch (error) {
+    console.error('查询1RM历史失败:', error)
+    exerciseHistory.value = []
+    showHistoryModal.value = true
+  }
 }
 
 function closeHistoryModal() {
@@ -509,8 +542,80 @@ function getProgressColor(currentWeight: number, previousWeight: number): string
 async function loadOneRepMaxes() {
   try {
     oneRepMaxRecords.value = await workoutStore.getAllOneRepMaxRecords()
+    console.log(`加载了${oneRepMaxRecords.value.length}条1RM记录`)
   } catch (error) {
     console.error('加载1RM记录失败:', error)
+  }
+}
+
+async function debugPrint1RMs() {
+  console.log('=== 1RM调试信息 ===')
+  console.log('当前加载的1RM记录:', oneRepMaxRecords.value)
+  
+  try {
+    const allRecords = await workoutStore.debugGetAllOneRMs()
+    console.log('数据库中的所有1RM记录:', allRecords)
+    
+    // 按动作分组
+    const byExercise: { [key: string]: any[] } = {}
+    allRecords.forEach(record => {
+      if (!byExercise[record.exercise_id]) {
+        byExercise[record.exercise_id] = []
+      }
+      byExercise[record.exercise_id].push(record)
+    })
+    
+    console.log('按动作分组的1RM记录:', byExercise)
+    
+    // 显示动作ID映射
+    console.log('动作ID映射:')
+    workoutStore.exercises.forEach(exercise => {
+      console.log(`${exercise.name}: ${exercise.id}`)
+    })
+  } catch (error) {
+    console.error('调试失败:', error)
+  }
+}
+
+function formatDateDetail(date: Date): string {
+  return format(date, 'yyyy年MM月dd日 HH:mm:ss')
+}
+
+async function testAdd1RM() {
+  console.log('=== 测试添加1RM记录 ===')
+  
+  try {
+    // 选择一个已存在的动作进行测试
+    const exercise = workoutStore.exercises.find(e => e.name === '二头弯举')
+    if (!exercise) {
+      console.log('未找到二头弯举动作')
+      return
+    }
+    
+    // 创建一条测试1RM记录
+    const testRecord = {
+      id: `1rm-test-${Date.now()}`,
+      exercise_id: exercise.id,
+      weight: Math.floor(Math.random() * 20) + 20, // 20-40kg随机重量
+      calculated: true,
+      date: new Date(),
+      created_at: new Date()
+    }
+    
+    console.log('添加测试1RM记录:', testRecord)
+    
+    // 直接保存到数据库
+    await db.oneRepMaxes.add(testRecord)
+    
+    // 重新加载数据
+    await loadOneRepMaxes()
+    
+    console.log('测试1RM记录添加成功')
+    alert('测试1RM记录已添加，请查看记录列表')
+    
+  } catch (error) {
+    console.error('测试1RM功能失败:', error)
+    alert('测试失败: ' + error.message)
   }
 }
 
