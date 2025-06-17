@@ -111,20 +111,31 @@
             :key="set.id"
             class="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
           >
-            <div>
+            <div class="flex-1">
               <div class="font-medium text-gray-900">
                 {{ getExerciseName(set.exercise_id) }}
               </div>
               <div class="text-sm text-gray-600">
                 {{ set.weight }}kg × {{ set.reps }}次
+                <span v-if="set.calories" class="text-orange-600 ml-2">🔥{{ set.calories }}千卡</span>
               </div>
             </div>
-            <button
-              @click="removeSet(index)"
-              class="text-red-600 hover:text-red-700 p-1"
-            >
-              <X class="w-5 h-5" />
-            </button>
+            <div class="flex items-center space-x-2">
+              <button
+                @click="copySet(set)"
+                class="text-blue-600 hover:text-blue-700 p-1"
+                title="复制这组"
+              >
+                <Copy class="w-4 h-4" />
+              </button>
+              <button
+                @click="removeSet(index)"
+                class="text-red-600 hover:text-red-700 p-1"
+                title="删除这组"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -168,8 +179,8 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutStore } from '../stores/workout'
 import Layout from '../components/Layout.vue'
-import { Dumbbell, X } from 'lucide-vue-next'
-import type { Exercise, OneRepMax } from '../types/workout'
+import { Dumbbell, X, Copy } from 'lucide-vue-next'
+import type { Exercise, OneRepMax, WorkoutSet } from '../types/workout'
 
 const router = useRouter()
 const workoutStore = useWorkoutStore()
@@ -232,6 +243,42 @@ async function addSet() {
 function removeSet(index: number) {
   if (currentSession.value) {
     currentSession.value.sets.splice(index, 1)
+  }
+}
+
+// 复制训练组
+async function copySet(set: WorkoutSet) {
+  try {
+    // 根据 exercise_id 找到对应的动作
+    const exercise = workoutStore.exercises.find(e => e.id === set.exercise_id)
+    if (!exercise) {
+      console.error('未找到对应的动作')
+      return
+    }
+
+    // 自动选择该动作
+    selectedExercise.value = exercise
+    
+    // 填充重量和次数
+    setWeight.value = set.weight
+    setReps.value = set.reps
+    
+    // 获取该动作的1RM
+    currentOneRM.value = await workoutStore.getOneRepMax(exercise.id) || null
+    
+    // 等待 DOM 更新后滚动到编辑区域
+    await nextTick()
+    if (editArea.value) {
+      editArea.value.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      })
+    }
+    
+    // 给用户一个简单的视觉反馈
+    console.log(`✅ 已复制: ${exercise.name} ${set.weight}kg × ${set.reps}次`)
+  } catch (error) {
+    console.error('复制训练组失败:', error)
   }
 }
 
