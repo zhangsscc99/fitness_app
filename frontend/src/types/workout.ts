@@ -11,6 +11,7 @@ export interface Exercise {
 export interface WorkoutSet {
   id: string
   exercise_id: string
+  workout_session_id?: string // 训练会话ID
   reps: number // 次数
   weight: number // 重量(kg)
   completed: boolean

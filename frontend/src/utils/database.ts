@@ -10,16 +10,28 @@ export class FitnessDatabase extends Dexie {
   constructor() {
     super('FitnessDatabase')
     
-    this.version(1).stores({
+    this.version(2).stores({
       exercises: 'id, name, muscle_group, equipment, created_at',
       workoutSessions: 'id, date, duration, created_at',
-      workoutSets: 'id, exercise_id, reps, weight, completed, created_at',
+      workoutSets: 'id, exercise_id, workout_session_id, reps, weight, completed, created_at',
       oneRepMaxes: 'id, exercise_id, weight, calculated, date, created_at'
     })
   }
 }
 
 export const db = new FitnessDatabase()
+
+// 重置数据库
+export async function resetDatabase() {
+  try {
+    await db.delete()
+    await db.open()
+    await initializeDefaultExercises()
+    console.log('数据库重置成功')
+  } catch (error) {
+    console.error('数据库重置失败:', error)
+  }
+}
 
 // 初始化预设动作
 export async function initializeDefaultExercises() {

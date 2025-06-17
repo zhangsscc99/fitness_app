@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { db, initializeDefaultExercises } from '../utils/database'
+import { db, initializeDefaultExercises, resetDatabase } from '../utils/database'
 import type { Exercise, WorkoutSession, WorkoutSet, OneRepMax } from '../types/workout'
 import { calculateOneRepMax } from '../types/workout'
 
@@ -31,6 +31,29 @@ export const useWorkoutStore = defineStore('workout', () => {
       await loadWorkoutSessions()
     } catch (error) {
       console.error('初始化数据库失败:', error)
+      // 如果初始化失败，尝试重置数据库
+      try {
+        await resetDatabase()
+        await loadExercises()
+        await loadWorkoutSessions()
+      } catch (resetError) {
+        console.error('重置数据库失败:', resetError)
+      }
+    }
+  }
+
+  // 重置数据库
+  async function resetDatabaseAndReload() {
+    try {
+      await resetDatabase()
+      exercises.value = []
+      workoutSessions.value = []
+      currentSession.value = null
+      await loadExercises()
+      await loadWorkoutSessions()
+      console.log('数据库重置完成')
+    } catch (error) {
+      console.error('重置数据库失败:', error)
     }
   }
 
@@ -123,20 +146,29 @@ export const useWorkoutStore = defineStore('workout', () => {
       currentSession.value.duration = duration
       currentSession.value.notes = notes
 
-      // 保存session
-      await db.workoutSessions.add(currentSession.value)
-      
-      // 保存所有sets
+      // 为所有sets设置workout_session_id
       const setsWithSessionId = currentSession.value.sets.map(set => ({
         ...set,
         workout_session_id: currentSession.value!.id
       }))
-      await db.workoutSets.bulkAdd(setsWithSessionId)
 
-      workoutSessions.value.unshift(currentSession.value)
+      // 保存所有sets
+      await db.workoutSets.bulkAdd(setsWithSessionId)
+      
+      // 保存session (不包含sets，因为sets已单独保存)
+      const sessionToSave = { ...currentSession.value }
+      delete (sessionToSave as any).sets
+      await db.workoutSessions.add(sessionToSave)
+
+      // 重新加载数据
+      await loadWorkoutSessions()
+      
       currentSession.value = null
+      
+      console.log('训练完成并保存成功')
     } catch (error) {
       console.error('完成训练失败:', error)
+      alert('保存训练失败，请重试')
       throw error
     } finally {
       isLoading.value = false
@@ -211,6 +243,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     
     // 方法
     initDatabase,
+    resetDatabaseAndReload,
     loadExercises,
     loadWorkoutSessions,
     addExercise,
