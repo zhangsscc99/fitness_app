@@ -76,18 +76,6 @@
       <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
         <Trophy class="w-5 h-5 mr-2 text-blue-600" />
         1RM记录与历史
-        <button
-          @click="debugPrint1RMs"
-          class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded hover:bg-gray-300 mr-2"
-        >
-          调试数据
-        </button>
-        <button
-          @click="testAdd1RM"
-          class="text-xs bg-green-200 text-green-600 px-2 py-1 rounded hover:bg-green-300"
-        >
-          测试1RM
-        </button>
       </h3>
       
       <div v-if="oneRepMaxRecords.length === 0" class="text-center text-gray-500 py-8">
@@ -490,20 +478,45 @@ async function showExerciseHistory(exerciseId: string) {
   selectedExerciseId.value = exerciseId
   selectedExerciseName.value = getExerciseName(exerciseId)
   
-  console.log(`查看历史 - exerciseId: ${exerciseId}, exerciseName: ${selectedExerciseName.value}`)
-  
   try {
-    // 直接从数据库查询，不依赖store的缓存
-    const history = await db.oneRepMaxes
-      .where('exercise_id')
-      .equals(exerciseId)
-      .orderBy('date')
-      .reverse()
-      .toArray()
+    // 首先检查该动作是否存在于当前记录中
+    const exerciseRecords = oneRepMaxRecords.value.filter(record => 
+      record.exercise_id === exerciseId
+    )
     
-    console.log(`找到${history.length}条1RM记录:`, history)
+    if (exerciseRecords.length > 0) {
+      // 如果在当前记录中找到了，直接使用
+      exerciseHistory.value = exerciseRecords.sort((a, b) => 
+        b.date.getTime() - a.date.getTime()
+      )
+    } else {
+      // 如果没找到，尝试从数据库重新查询
+      const history = await db.oneRepMaxes
+        .where('exercise_id')
+        .equals(exerciseId)
+        .orderBy('date')
+        .reverse()
+        .toArray()
+      
+      exerciseHistory.value = history
+    }
     
-    exerciseHistory.value = history
+    // 如果还是没有记录，检查是否有其他动作ID匹配
+    if (exerciseHistory.value.length === 0) {
+      const exerciseName = selectedExerciseName.value
+      const allRecords = await db.oneRepMaxes.toArray()
+      
+      // 通过动作名称匹配
+      const matchingRecords = allRecords.filter(record => {
+        const recordExerciseName = getExerciseName(record.exercise_id)
+        return recordExerciseName === exerciseName
+      })
+      
+      exerciseHistory.value = matchingRecords.sort((a, b) => 
+        b.date.getTime() - a.date.getTime()
+      )
+    }
+    
     showHistoryModal.value = true
   } catch (error) {
     console.error('查询1RM历史失败:', error)
@@ -548,75 +561,8 @@ async function loadOneRepMaxes() {
   }
 }
 
-async function debugPrint1RMs() {
-  console.log('=== 1RM调试信息 ===')
-  console.log('当前加载的1RM记录:', oneRepMaxRecords.value)
-  
-  try {
-    const allRecords = await workoutStore.debugGetAllOneRMs()
-    console.log('数据库中的所有1RM记录:', allRecords)
-    
-    // 按动作分组
-    const byExercise: { [key: string]: any[] } = {}
-    allRecords.forEach(record => {
-      if (!byExercise[record.exercise_id]) {
-        byExercise[record.exercise_id] = []
-      }
-      byExercise[record.exercise_id].push(record)
-    })
-    
-    console.log('按动作分组的1RM记录:', byExercise)
-    
-    // 显示动作ID映射
-    console.log('动作ID映射:')
-    workoutStore.exercises.forEach(exercise => {
-      console.log(`${exercise.name}: ${exercise.id}`)
-    })
-  } catch (error) {
-    console.error('调试失败:', error)
-  }
-}
-
 function formatDateDetail(date: Date): string {
   return format(date, 'yyyy年MM月dd日 HH:mm:ss')
-}
-
-async function testAdd1RM() {
-  console.log('=== 测试添加1RM记录 ===')
-  
-  try {
-    // 选择一个已存在的动作进行测试
-    const exercise = workoutStore.exercises.find(e => e.name === '二头弯举')
-    if (!exercise) {
-      console.log('未找到二头弯举动作')
-      return
-    }
-    
-    // 创建一条测试1RM记录
-    const testRecord = {
-      id: `1rm-test-${Date.now()}`,
-      exercise_id: exercise.id,
-      weight: Math.floor(Math.random() * 20) + 20, // 20-40kg随机重量
-      calculated: true,
-      date: new Date(),
-      created_at: new Date()
-    }
-    
-    console.log('添加测试1RM记录:', testRecord)
-    
-    // 直接保存到数据库
-    await db.oneRepMaxes.add(testRecord)
-    
-    // 重新加载数据
-    await loadOneRepMaxes()
-    
-    console.log('测试1RM记录添加成功')
-    alert('测试1RM记录已添加，请查看记录列表')
-    
-  } catch (error) {
-    console.error('测试1RM功能失败:', error)
-    alert('测试失败: ' + error.message)
-  }
 }
 
 onMounted(() => {

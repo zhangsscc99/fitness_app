@@ -317,18 +317,25 @@ async function showHistory(exerciseId: string, exerciseName: string) {
   selectedExerciseId.value = exerciseId
   selectedExerciseName.value = exerciseName
   
-  console.log(`查看${exerciseName}历史 - exerciseId: ${exerciseId}`)
-  
   try {
-    // 直接从数据库查询，确保获取最新数据
-    const history = await db.oneRepMaxes
+    // 首先尝试直接查询
+    let history = await db.oneRepMaxes
       .where('exercise_id')
       .equals(exerciseId)
       .orderBy('date')
       .reverse()
       .toArray()
     
-    console.log(`找到${history.length}条1RM记录:`, history)
+    // 如果没找到记录，尝试通过动作名称匹配
+    if (history.length === 0) {
+      const allRecords = await db.oneRepMaxes.toArray()
+      
+      // 通过动作名称匹配其他可能的ID
+      history = allRecords.filter(record => {
+        const recordExercise = workoutStore.exercises.find(e => e.id === record.exercise_id)
+        return recordExercise && recordExercise.name === exerciseName
+      }).sort((a, b) => b.date.getTime() - a.date.getTime())
+    }
     
     historyRecords.value = history
     showHistoryModal.value = true

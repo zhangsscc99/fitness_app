@@ -155,7 +155,7 @@ export const useWorkoutStore = defineStore('workout', () => {
       // 保存所有sets
       await db.workoutSets.bulkAdd(setsWithSessionId)
       
-      // 确保训练完成时更新所有动作的1RM
+      // 确保训练完成时为每个动作保存1RM记录
       const exerciseGroups: { [key: string]: WorkoutSet[] } = {}
       currentSession.value.sets.forEach(set => {
         if (!exerciseGroups[set.exercise_id]) {
@@ -165,10 +165,13 @@ export const useWorkoutStore = defineStore('workout', () => {
       })
 
       // 为每个动作保存1RM记录
-      for (const [exerciseId, sets] of Object.entries(exerciseGroups)) {
+      for (const exerciseId of Object.keys(exerciseGroups)) {
+        const sets = exerciseGroups[exerciseId]
         const maxSet = sets.reduce((max, current) => 
           current.weight > max.weight ? current : max
         )
+        
+        console.log(`为动作 ${getExerciseName(exerciseId)} (ID: ${exerciseId}) 保存1RM记录`)
         await saveOneRepMaxRecord(exerciseId, maxSet.weight, maxSet.reps)
       }
       
@@ -198,7 +201,7 @@ export const useWorkoutStore = defineStore('workout', () => {
       const calculatedMax = calculateOneRepMax(weight, reps)
       const now = new Date()
       
-      // 总是保存1RM记录（即使没有突破，也要记录时间点）
+      // 总是保存1RM记录（每次训练都记录时间点）
       const oneRepMax: OneRepMax = {
         id: `1rm-${exerciseId}-${now.getTime()}`,
         exercise_id: exerciseId,
@@ -209,7 +212,7 @@ export const useWorkoutStore = defineStore('workout', () => {
       }
 
       await db.oneRepMaxes.add(oneRepMax)
-      console.log(`保存1RM记录: ${getExerciseName(exerciseId)} ${calculatedMax}kg (${now.toLocaleString()})`)
+      console.log(`保存1RM记录成功: ${getExerciseName(exerciseId)} ${calculatedMax}kg (${now.toLocaleString()})`)
     } catch (error) {
       console.error('保存1RM记录失败:', error)
     }
