@@ -95,31 +95,31 @@ export const EXERCISE_CALORIE_DATABASE: { [key: string]: ExerciseCalorieData } =
     name: '深蹲',
     type: ExerciseType.COMPOUND,
     intensity: IntensityLevel.HIGH,
-    met_value: 6.0,
-    base_calories_per_rep: 0.8,
-    weight_multiplier: 0.12,
-    muscle_mass_factor: 0.85,  // 腿部是最大肌群
-    time_per_rep: 3.5
+    met_value: 4.0,  // 降低MET值
+    base_calories_per_rep: 0.35,  // 降低基础消耗
+    weight_multiplier: 0.06,  // 降低重量系数
+    muscle_mass_factor: 0.75,  // 降低肌肉系数
+    time_per_rep: 3.0
   },
   '腿举': {
     name: '腿举',
     type: ExerciseType.COMPOUND,
     intensity: IntensityLevel.MODERATE,
-    met_value: 4.5,
-    base_calories_per_rep: 0.6,
-    weight_multiplier: 0.08,
-    muscle_mass_factor: 0.75,
-    time_per_rep: 3.0
+    met_value: 3.2,
+    base_calories_per_rep: 0.25,
+    weight_multiplier: 0.04,
+    muscle_mass_factor: 0.60,
+    time_per_rep: 2.5
   },
   '腿弯举': {
     name: '腿弯举',
     type: ExerciseType.ISOLATION,
     intensity: IntensityLevel.MODERATE,
-    met_value: 3.5,
-    base_calories_per_rep: 0.4,
-    weight_multiplier: 0.06,
-    muscle_mass_factor: 0.45,
-    time_per_rep: 2.5
+    met_value: 2.8,
+    base_calories_per_rep: 0.18,
+    weight_multiplier: 0.03,
+    muscle_mass_factor: 0.35,
+    time_per_rep: 2.0
   },
 
   // === 胸部动作 ===
@@ -127,31 +127,31 @@ export const EXERCISE_CALORIE_DATABASE: { [key: string]: ExerciseCalorieData } =
     name: '平板卧推',
     type: ExerciseType.COMPOUND,
     intensity: IntensityLevel.HIGH,
-    met_value: 5.5,
-    base_calories_per_rep: 0.7,
-    weight_multiplier: 0.10,
-    muscle_mass_factor: 0.65,
-    time_per_rep: 3.0
+    met_value: 3.8,
+    base_calories_per_rep: 0.32,
+    weight_multiplier: 0.05,
+    muscle_mass_factor: 0.55,
+    time_per_rep: 2.8
   },
   '上斜卧推': {
     name: '上斜卧推',
     type: ExerciseType.COMPOUND,
     intensity: IntensityLevel.HIGH,
-    met_value: 5.8,
-    base_calories_per_rep: 0.75,
-    weight_multiplier: 0.10,
-    muscle_mass_factor: 0.68,
-    time_per_rep: 3.2
+    met_value: 4.0,
+    base_calories_per_rep: 0.35,
+    weight_multiplier: 0.05,
+    muscle_mass_factor: 0.58,
+    time_per_rep: 3.0
   },
   '双杠臂屈伸': {
     name: '双杠臂屈伸',
     type: ExerciseType.BODYWEIGHT,
     intensity: IntensityLevel.HIGH,
-    met_value: 6.0,
-    base_calories_per_rep: 0.9,
-    weight_multiplier: 0.15,  // 自重动作对额外重量更敏感
-    muscle_mass_factor: 0.60,
-    time_per_rep: 2.8
+    met_value: 4.2,
+    base_calories_per_rep: 0.45,
+    weight_multiplier: 0.08,  // 自重动作对额外重量更敏感
+    muscle_mass_factor: 0.50,
+    time_per_rep: 2.5
   },
 
   // === 背部动作 ===
@@ -159,31 +159,31 @@ export const EXERCISE_CALORIE_DATABASE: { [key: string]: ExerciseCalorieData } =
     name: '硬拉',
     type: ExerciseType.COMPOUND,
     intensity: IntensityLevel.VERY_HIGH,
-    met_value: 7.5,
-    base_calories_per_rep: 1.2,
-    weight_multiplier: 0.15,
-    muscle_mass_factor: 0.90,  // 全身性动作
-    time_per_rep: 4.0
+    met_value: 5.5,  // 降低但保持最高
+    base_calories_per_rep: 0.55,
+    weight_multiplier: 0.08,
+    muscle_mass_factor: 0.80,  // 全身性动作
+    time_per_rep: 3.5
   },
   '引体向上': {
     name: '引体向上',
     type: ExerciseType.BODYWEIGHT,
     intensity: IntensityLevel.VERY_HIGH,
-    met_value: 7.0,
-    base_calories_per_rep: 1.0,
-    weight_multiplier: 0.18,
-    muscle_mass_factor: 0.70,
-    time_per_rep: 3.5
+    met_value: 5.0,
+    base_calories_per_rep: 0.50,
+    weight_multiplier: 0.10,
+    muscle_mass_factor: 0.60,
+    time_per_rep: 3.0
   },
   '划船': {
     name: '划船',
     type: ExerciseType.COMPOUND,
     intensity: IntensityLevel.HIGH,
-    met_value: 5.0,
-    base_calories_per_rep: 0.65,
-    weight_multiplier: 0.09,
-    muscle_mass_factor: 0.60,
-    time_per_rep: 2.8
+    met_value: 3.5,
+    base_calories_per_rep: 0.30,
+    weight_multiplier: 0.04,
+    muscle_mass_factor: 0.50,
+    time_per_rep: 2.5
   },
 
   // === 肩部动作 ===
@@ -191,21 +191,21 @@ export const EXERCISE_CALORIE_DATABASE: { [key: string]: ExerciseCalorieData } =
     name: '推举',
     type: ExerciseType.COMPOUND,
     intensity: IntensityLevel.HIGH,
-    met_value: 5.2,
-    base_calories_per_rep: 0.55,
-    weight_multiplier: 0.08,
-    muscle_mass_factor: 0.50,
-    time_per_rep: 2.5
+    met_value: 3.6,
+    base_calories_per_rep: 0.28,
+    weight_multiplier: 0.04,
+    muscle_mass_factor: 0.40,
+    time_per_rep: 2.2
   },
   '侧平举': {
     name: '侧平举',
     type: ExerciseType.ISOLATION,
     intensity: IntensityLevel.MODERATE,
-    met_value: 3.0,
-    base_calories_per_rep: 0.25,
-    weight_multiplier: 0.05,
-    muscle_mass_factor: 0.25,
-    time_per_rep: 2.0
+    met_value: 2.5,
+    base_calories_per_rep: 0.12,
+    weight_multiplier: 0.02,
+    muscle_mass_factor: 0.20,
+    time_per_rep: 1.8
   },
 
   // === 手臂动作 ===
@@ -213,21 +213,21 @@ export const EXERCISE_CALORIE_DATABASE: { [key: string]: ExerciseCalorieData } =
     name: '二头弯举',
     type: ExerciseType.ISOLATION,
     intensity: IntensityLevel.MODERATE,
-    met_value: 3.2,
-    base_calories_per_rep: 0.3,
-    weight_multiplier: 0.05,
-    muscle_mass_factor: 0.20,
-    time_per_rep: 2.2
+    met_value: 2.8,
+    base_calories_per_rep: 0.15,
+    weight_multiplier: 0.02,
+    muscle_mass_factor: 0.18,
+    time_per_rep: 2.0
   },
   '三头屈伸': {
     name: '三头屈伸',
     type: ExerciseType.ISOLATION,
     intensity: IntensityLevel.MODERATE,
-    met_value: 3.5,
-    base_calories_per_rep: 0.35,
-    weight_multiplier: 0.06,
-    muscle_mass_factor: 0.25,
-    time_per_rep: 2.5
+    met_value: 3.0,
+    base_calories_per_rep: 0.18,
+    weight_multiplier: 0.03,
+    muscle_mass_factor: 0.22,
+    time_per_rep: 2.2
   },
 
   // === 核心动作 ===
@@ -235,20 +235,20 @@ export const EXERCISE_CALORIE_DATABASE: { [key: string]: ExerciseCalorieData } =
     name: '卷腹',
     type: ExerciseType.BODYWEIGHT,
     intensity: IntensityLevel.MODERATE,
-    met_value: 3.8,
-    base_calories_per_rep: 0.2,
-    weight_multiplier: 0.08,
-    muscle_mass_factor: 0.30,
-    time_per_rep: 1.5
+    met_value: 3.2,
+    base_calories_per_rep: 0.10,
+    weight_multiplier: 0.04,
+    muscle_mass_factor: 0.25,
+    time_per_rep: 1.2
   },
   '平板支撑': {
     name: '平板支撑',
     type: ExerciseType.BODYWEIGHT,
     intensity: IntensityLevel.MODERATE,
-    met_value: 4.0,
-    base_calories_per_rep: 0.15,  // 按秒计算
-    weight_multiplier: 0.05,
-    muscle_mass_factor: 0.35,
+    met_value: 3.5,
+    base_calories_per_rep: 0.08,  // 按秒计算
+    weight_multiplier: 0.02,
+    muscle_mass_factor: 0.30,
     time_per_rep: 1.0  // 每秒
   }
 }
@@ -258,11 +258,11 @@ export const DEFAULT_EXERCISE_DATA: ExerciseCalorieData = {
   name: '默认动作',
   type: ExerciseType.ISOLATION,
   intensity: IntensityLevel.MODERATE,
-  met_value: 3.5,
-  base_calories_per_rep: 0.4,
-  weight_multiplier: 0.06,
-  muscle_mass_factor: 0.40,
-  time_per_rep: 2.5
+  met_value: 2.8,  // 降低默认MET值
+  base_calories_per_rep: 0.20,  // 降低基础消耗
+  weight_multiplier: 0.03,  // 降低重量系数
+  muscle_mass_factor: 0.30,  // 降低肌肉系数
+  time_per_rep: 2.0
 }
 
 // 1RM计算公式 (Epley公式)
@@ -280,8 +280,8 @@ export function calculateCalories(
 ): number {
   const exerciseData = EXERCISE_CALORIE_DATABASE[exerciseName] || DEFAULT_EXERCISE_DATA
   
-  // 1. 基础代谢消耗（基于MET值）
-  const baseMET = (exerciseData.met_value * bodyWeight * exerciseData.time_per_rep * reps) / 3600
+  // 1. 基础代谢消耗（基于MET值，降低系数）
+  const baseMET = (exerciseData.met_value * bodyWeight * exerciseData.time_per_rep * reps) / 7200  // 除以7200而不是3600
   
   // 2. 动作基础消耗
   const baseCalories = exerciseData.base_calories_per_rep * reps * (bodyWeight / 70)
@@ -292,40 +292,41 @@ export function calculateCalories(
   // 4. 肌肉参与度调整
   const muscleAdjustment = exerciseData.muscle_mass_factor
   
-  // 5. 强度系数
+  // 5. 强度系数（降低）
   const intensityMultiplier = getIntensityMultiplier(exerciseData.intensity)
   
-  // 6. 动作类型系数
+  // 6. 动作类型系数（降低）
   const typeMultiplier = getTypeMultiplier(exerciseData.type)
   
-  // 综合计算
+  // 综合计算（降低总体系数）
   const totalCalories = (baseMET + baseCalories + weightCalories) * 
                        muscleAdjustment * 
                        intensityMultiplier * 
-                       typeMultiplier
+                       typeMultiplier * 
+                       0.7  // 添加整体降低系数
   
-  return Math.round(Math.max(totalCalories, reps * 0.1)) // 最低每次0.1卡
+  return Math.round(Math.max(totalCalories, reps * 0.05)) // 最低每次0.05卡
 }
 
-// 强度系数
+// 强度系数（降低）
 function getIntensityMultiplier(intensity: IntensityLevel): number {
   switch (intensity) {
-    case IntensityLevel.LOW: return 0.8
-    case IntensityLevel.MODERATE: return 1.0
-    case IntensityLevel.HIGH: return 1.3
-    case IntensityLevel.VERY_HIGH: return 1.6
-    default: return 1.0
+    case IntensityLevel.LOW: return 0.7
+    case IntensityLevel.MODERATE: return 0.85
+    case IntensityLevel.HIGH: return 1.0
+    case IntensityLevel.VERY_HIGH: return 1.15
+    default: return 0.85
   }
 }
 
-// 动作类型系数
+// 动作类型系数（降低）
 function getTypeMultiplier(type: ExerciseType): number {
   switch (type) {
-    case ExerciseType.COMPOUND: return 1.2    // 复合动作消耗更多
-    case ExerciseType.ISOLATION: return 0.9   // 孤立动作相对较少
-    case ExerciseType.BODYWEIGHT: return 1.1  // 自重动作中等
-    case ExerciseType.CARDIO: return 1.4      // 有氧动作最高
-    default: return 1.0
+    case ExerciseType.COMPOUND: return 1.1    // 复合动作稍微多一点
+    case ExerciseType.ISOLATION: return 0.85   // 孤立动作较少
+    case ExerciseType.BODYWEIGHT: return 0.95  // 自重动作中等偏低
+    case ExerciseType.CARDIO: return 1.2      // 有氧动作最高
+    default: return 0.85
   }
 }
 
