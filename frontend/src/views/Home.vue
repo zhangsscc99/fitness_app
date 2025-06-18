@@ -14,18 +14,28 @@
       <div v-if="currentSession" class="text-center">
         <div class="text-green-600 mb-4">
           <Play class="w-12 h-12 mx-auto mb-2" />
-          <p class="font-medium">训练进行中</p>
+          <p class="font-medium">
+            {{ workoutStore.isContinuingSession ? '继续训练中' : '训练进行中' }}
+          </p>
           <p class="text-sm text-gray-500">已进行 {{ formatDuration(trainingDuration) }}</p>
+          <div v-if="workoutStore.isContinuingSession" class="text-xs text-green-600 mt-1">
+            🔄 正在继续之前的训练
+          </div>
         </div>
         <div class="bg-gray-50 rounded-lg p-3 mb-4">
-          <p class="text-sm text-gray-600">已完成组数: {{ currentSession.sets.length }}</p>
+          <p class="text-sm text-gray-600">
+            已完成组数: {{ currentSession.sets.length }}
+            <span v-if="workoutStore.isContinuingSession" class="text-green-600">
+              (包含之前组数)
+            </span>
+          </p>
           <p class="text-sm text-gray-600">预计消耗: {{ getCurrentSessionCalories() }}千卡</p>
         </div>
         <router-link
           to="/workout"
           class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors inline-block text-center"
         >
-          继续训练
+          {{ workoutStore.isContinuingSession ? '继续训练' : '继续训练' }}
         </router-link>
       </div>
 

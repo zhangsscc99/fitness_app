@@ -93,6 +93,12 @@
         <div class="px-4 pb-4">
           <div class="flex justify-end space-x-2">
             <button
+              @click="continueWorkout(session)"
+              class="text-green-600 hover:text-green-700 text-sm font-medium"
+            >
+              继续训练
+            </button>
+            <button
               @click="duplicateWorkout(session)"
               class="text-blue-600 hover:text-blue-700 text-sm font-medium"
             >
@@ -194,6 +200,18 @@ function getSessionCalories(session: WorkoutSession): number {
   }
   // 如果没有存储总卡路里，则计算
   return session.sets.reduce((total, set) => total + (set.calories || 0), 0)
+}
+
+async function continueWorkout(session: WorkoutSession) {
+  if (workoutStore.currentSession) {
+    if (!confirm('已有进行中的训练，是否要取消当前训练并继续此次训练？')) {
+      return
+    }
+  }
+
+  // 继续之前的训练
+  await workoutStore.continueWorkout(session)
+  router.push('/workout')
 }
 
 async function duplicateWorkout(session: WorkoutSession) {

@@ -18,13 +18,23 @@
       <!-- 训练状态 -->
       <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
         <div class="flex justify-between items-center mb-2">
-          <h2 class="text-lg font-semibold text-gray-900">训练进行中</h2>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">
+              {{ workoutStore.isContinuingSession ? '继续训练' : '训练进行中' }}
+            </h2>
+            <div v-if="workoutStore.isContinuingSession" class="text-xs text-green-600 mt-1">
+              🔄 正在继续之前的训练
+            </div>
+          </div>
           <div class="text-sm text-gray-500">
             {{ formatTime(trainingDuration) }}
           </div>
         </div>
         <div class="text-sm text-gray-600">
           已完成 {{ currentSession.sets.length }} 组
+          <span v-if="workoutStore.isContinuingSession" class="text-green-600">
+            (包含之前的训练组)
+          </span>
         </div>
       </div>
 

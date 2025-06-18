@@ -11,6 +11,8 @@ export const useWorkoutStore = defineStore('workout', () => {
   const currentSession = ref<WorkoutSession | null>(null)
   const isLoading = ref(false)
   const userSettings = ref<UserSettings | null>(null)
+  const isContinuingSession = ref(false)  // 标记是否是继续训练
+  const originalSessionId = ref<string | null>(null)  // 原始会话ID
 
   // 计算属性
   const exercisesByMuscleGroup = computed(() => {
@@ -197,6 +199,32 @@ export const useWorkoutStore = defineStore('workout', () => {
       total_calories: 0,
       created_at: new Date()
     }
+    isContinuingSession.value = false
+    originalSessionId.value = null
+  }
+
+  // 继续之前的训练
+  async function continueWorkout(session: WorkoutSession) {
+    try {
+      // 创建一个新的会话ID，但保留原始会话的信息
+      currentSession.value = {
+        id: `session-${Date.now()}`,  // 新的临时ID
+        date: session.date,  // 保持原始日期
+        sets: [...session.sets],  // 复制原有的训练组
+        total_calories: session.total_calories || 0,
+        created_at: new Date(),  // 继续训练的开始时间
+        notes: session.notes,
+        duration: session.duration
+      }
+      
+      isContinuingSession.value = true
+      originalSessionId.value = session.id
+      
+      console.log(`继续训练: ${session.date.toLocaleDateString()}, 原有${session.sets.length}组`)
+    } catch (error) {
+      console.error('继续训练失败:', error)
+      throw error
+    }
   }
 
   // 添加训练组
@@ -247,9 +275,18 @@ export const useWorkoutStore = defineStore('workout', () => {
       isLoading.value = true
       
       // 计算训练时长
-      const duration = Math.round((Date.now() - currentSession.value.created_at.getTime()) / 60000)
+      let duration: number
+      if (isContinuingSession.value && currentSession.value.duration) {
+        // 如果是继续训练，累加时长
+        const additionalDuration = Math.round((Date.now() - currentSession.value.created_at.getTime()) / 60000)
+        duration = currentSession.value.duration + additionalDuration
+      } else {
+        // 新训练，计算总时长
+        duration = Math.round((Date.now() - currentSession.value.created_at.getTime()) / 60000)
+      }
+      
       currentSession.value.duration = duration
-      currentSession.value.notes = notes
+      currentSession.value.notes = notes || currentSession.value.notes
 
       // 确保总卡路里计算正确
       const totalCalories = currentSession.value.sets.reduce((total, set) => {
@@ -257,10 +294,68 @@ export const useWorkoutStore = defineStore('workout', () => {
       }, 0)
       currentSession.value.total_calories = totalCalories
 
-      // 为所有sets设置workout_session_id
-      const setsWithSessionId = currentSession.value.sets.map(set => ({
+      if (isContinuingSession.value && originalSessionId.value) {
+        // 继续训练：更新原有会话
+        await updateExistingSession(originalSessionId.value, currentSession.value)
+      } else {
+        // 新训练：创建新会话
+        await createNewSession(currentSession.value)
+      }
+
+      // 重新加载数据
+      await loadWorkoutSessions()
+      
+      // 重置状态
+      currentSession.value = null
+      isContinuingSession.value = false
+      originalSessionId.value = null
+      
+      console.log(`训练完成并保存成功，总消耗卡路里: ${totalCalories}`)
+    } catch (error) {
+      console.error('完成训练失败:', error)
+      alert('保存训练失败，请重试')
+      throw error
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // 更新现有会话
+  async function updateExistingSession(sessionId: string, session: WorkoutSession) {
+    try {
+      // 删除原有的sets
+      await db.workoutSets.where('workout_session_id').equals(sessionId).delete()
+      
+      // 为所有sets设置正确的session ID
+      const setsWithSessionId = session.sets.map(set => ({
         ...set,
-        workout_session_id: currentSession.value!.id
+        workout_session_id: sessionId
+      }))
+
+      // 保存更新后的sets
+      await db.workoutSets.bulkAdd(setsWithSessionId)
+
+      // 更新session信息
+      await db.workoutSessions.update(sessionId, {
+        duration: session.duration,
+        notes: session.notes,
+        total_calories: session.total_calories
+      })
+
+      console.log(`更新现有训练会话: ${sessionId}`)
+    } catch (error) {
+      console.error('更新现有会话失败:', error)
+      throw error
+    }
+  }
+
+  // 创建新会话
+  async function createNewSession(session: WorkoutSession) {
+    try {
+      // 为所有sets设置workout_session_id
+      const setsWithSessionId = session.sets.map(set => ({
+        ...set,
+        workout_session_id: session.id
       }))
 
       // 保存所有sets
@@ -268,7 +363,7 @@ export const useWorkoutStore = defineStore('workout', () => {
       
       // 确保训练完成时为每个动作保存1RM记录
       const exerciseGroups: { [key: string]: WorkoutSet[] } = {}
-      currentSession.value.sets.forEach(set => {
+      session.sets.forEach(set => {
         if (!exerciseGroups[set.exercise_id]) {
           exerciseGroups[set.exercise_id] = []
         }
@@ -287,22 +382,14 @@ export const useWorkoutStore = defineStore('workout', () => {
       }
       
       // 保存session (不包含sets，因为sets已单独保存)
-      const sessionToSave = { ...currentSession.value }
+      const sessionToSave = { ...session }
       delete (sessionToSave as any).sets
       await db.workoutSessions.add(sessionToSave)
 
-      // 重新加载数据
-      await loadWorkoutSessions()
-      
-      currentSession.value = null
-      
-      console.log(`训练完成并保存成功，总消耗卡路里: ${totalCalories}`)
+      console.log(`创建新训练会话: ${session.id}`)
     } catch (error) {
-      console.error('完成训练失败:', error)
-      alert('保存训练失败，请重试')
+      console.error('创建新会话失败:', error)
       throw error
-    } finally {
-      isLoading.value = false
     }
   }
 
@@ -447,6 +534,8 @@ export const useWorkoutStore = defineStore('workout', () => {
     exercisesByMuscleGroup,
     userSettings,
     todayStats,
+    isContinuingSession,
+    originalSessionId,
     
     // 方法
     initDatabase,
@@ -456,6 +545,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     addExercise,
     updateExercise,
     startWorkout,
+    continueWorkout,
     addWorkoutSet,
     finishWorkout,
     updateOneRepMax,
