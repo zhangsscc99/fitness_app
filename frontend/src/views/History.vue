@@ -24,8 +24,13 @@
         <div class="p-4 border-b border-gray-100">
           <div class="flex justify-between items-start mb-2">
             <div>
-              <div class="text-lg font-semibold text-gray-900">
-                {{ formatDate(session.date) }}
+              <div class="flex items-center">
+                <div class="text-lg font-semibold text-gray-900">
+                  {{ formatDate(session.date) }}
+                </div>
+                <div v-if="isToday(session.date)" class="ml-2 inline-flex items-center px-2 py-1 bg-green-100 border border-green-200 rounded-full text-xs font-medium text-green-700">
+                  📅 今天
+                </div>
               </div>
               <div class="text-sm text-gray-500">
                 {{ formatTime(session.date) }}
@@ -93,6 +98,7 @@
         <div class="px-4 pb-4">
           <div class="flex justify-end space-x-2">
             <button
+              v-if="isToday(session.date)"
               @click="continueWorkout(session)"
               class="text-green-600 hover:text-green-700 text-sm font-medium"
             >
@@ -245,5 +251,14 @@ async function deleteSession(sessionId: string) {
 
 function loadMoreSessions() {
   // TODO: 实现分页加载
+}
+
+function isToday(date: Date): boolean {
+  const today = new Date()
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  )
 }
 </script> 
