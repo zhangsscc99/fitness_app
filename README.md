@@ -75,3 +75,9 @@ cd backend
 3. **1RM计算** - 自动计算和记录单次最大重量
 4. **训练统计** - 训练进度和数据分析
 5. **离线同步** - 本地数据管理和备份 
+
+npm run build
+
+npx cap sync android
+
+npx cap open android 

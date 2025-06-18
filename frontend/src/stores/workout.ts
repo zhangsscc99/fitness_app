@@ -24,6 +24,41 @@ export const useWorkoutStore = defineStore('workout', () => {
     return grouped
   })
 
+  // 当日统计
+  const todayStats = computed(() => {
+    const today = new Date()
+    const todaySessions = workoutSessions.value.filter(session => {
+      const sessionDate = new Date(session.date)
+      return sessionDate.toDateString() === today.toDateString()
+    })
+
+    const sessions = todaySessions.length
+    const sets = todaySessions.reduce((total, session) => total + session.sets.length, 0)
+    const volume = todaySessions.reduce((total, session) => {
+      return total + session.sets.reduce((sessionTotal, set) => {
+        return sessionTotal + (set.weight * set.reps)
+      }, 0)
+    }, 0)
+
+    const calories = todaySessions.reduce((total, session) => {
+      if (session.total_calories) {
+        return total + session.total_calories
+      }
+      // 如果没有存储的总卡路里，从sets中计算
+      const sessionCalories = session.sets.reduce((sessionTotal, set) => {
+        return sessionTotal + (set.calories || 0)
+      }, 0)
+      return total + sessionCalories
+    }, 0)
+
+    return {
+      sessions,
+      sets,
+      volume,
+      calories
+    }
+  })
+
   // 初始化数据库
   async function initDatabase() {
     try {
@@ -411,6 +446,7 @@ export const useWorkoutStore = defineStore('workout', () => {
     isLoading,
     exercisesByMuscleGroup,
     userSettings,
+    todayStats,
     
     // 方法
     initDatabase,

@@ -10,7 +10,67 @@
     <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4">今日训练</h3>
       
-      <div v-if="!currentSession" class="text-center">
+      <!-- 当前正在进行的训练 -->
+      <div v-if="currentSession" class="text-center">
+        <div class="text-green-600 mb-4">
+          <Play class="w-12 h-12 mx-auto mb-2" />
+          <p class="font-medium">训练进行中</p>
+          <p class="text-sm text-gray-500">已进行 {{ formatDuration(trainingDuration) }}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 mb-4">
+          <p class="text-sm text-gray-600">已完成组数: {{ currentSession.sets.length }}</p>
+          <p class="text-sm text-gray-600">预计消耗: {{ getCurrentSessionCalories() }}千卡</p>
+        </div>
+        <router-link
+          to="/workout"
+          class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors inline-block text-center"
+        >
+          继续训练
+        </router-link>
+      </div>
+
+      <!-- 当日已完成训练统计 -->
+      <div v-else-if="todayStats.sessions > 0">
+        <div class="text-center mb-4">
+          <div class="text-green-600 mb-2">
+            <Dumbbell class="w-12 h-12 mx-auto mb-2" />
+            <p class="font-medium">今日已训练</p>
+          </div>
+        </div>
+        
+        <!-- 当日统计数据 -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="text-center">
+            <div class="text-xl font-bold text-blue-600">{{ todayStats.sessions }}</div>
+            <div class="text-xs text-gray-600">训练次数</div>
+          </div>
+          <div class="text-center">
+            <div class="text-xl font-bold text-green-600">{{ todayStats.sets }}</div>
+            <div class="text-xs text-gray-600">组数</div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="text-center">
+            <div class="text-xl font-bold text-purple-600">{{ todayStats.volume }}</div>
+            <div class="text-xs text-gray-600">训练量(kg)</div>
+          </div>
+          <div class="text-center">
+            <div class="text-xl font-bold text-orange-600">{{ todayStats.calories }}</div>
+            <div class="text-xs text-gray-600">消耗(千卡)</div>
+          </div>
+        </div>
+        
+        <button
+          @click="startWorkout"
+          class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+        >
+          再次训练
+        </button>
+      </div>
+
+      <!-- 当日无训练 -->
+      <div v-else class="text-center">
         <div class="text-gray-500 mb-4">
           <Dumbbell class="w-12 h-12 mx-auto mb-2 text-gray-400" />
           <p>还没有开始今天的训练</p>
@@ -21,23 +81,6 @@
         >
           开始训练
         </button>
-      </div>
-
-      <div v-else class="text-center">
-        <div class="text-green-600 mb-4">
-          <Play class="w-12 h-12 mx-auto mb-2" />
-          <p class="font-medium">训练进行中</p>
-          <p class="text-sm text-gray-500">已进行 {{ formatDuration(trainingDuration) }}</p>
-        </div>
-        <div class="bg-gray-50 rounded-lg p-3 mb-4">
-          <p class="text-sm text-gray-600">已完成组数: {{ currentSession.sets.length }}</p>
-        </div>
-        <router-link
-          to="/workout"
-          class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors inline-block text-center"
-        >
-          继续训练
-        </router-link>
       </div>
     </div>
 
@@ -117,6 +160,7 @@ const totalSets = computed(() => {
     return total + session.sets.length
   }, 0)
 })
+const todayStats = computed(() => workoutStore.todayStats)
 
 // 方法
 function startWorkout() {
@@ -135,6 +179,15 @@ function formatDuration(minutes: number) {
     return `${hours}时${mins}分`
   }
   return `${mins}分钟`
+}
+
+function getCurrentSessionCalories() {
+  if (currentSession.value) {
+    return currentSession.value.sets.reduce((total, set) => {
+      return total + (set.calories || 0)
+    }, 0)
+  }
+  return 0
 }
 
 function updateTrainingDuration() {
